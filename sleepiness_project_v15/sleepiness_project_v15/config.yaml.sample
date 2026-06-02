@@ -1,0 +1,72 @@
+# config.yaml.sample — copy to config.yaml and edit to override defaults.
+#
+# Every key below is optional. Anything you omit falls back to the built-in
+# default (identical to the values shown here). Values are validated on load;
+# invalid values raise a clear error listing what's wrong.
+#
+#   cp config.yaml.sample config.yaml
+
+# ─── Detection thresholds ────────────────────────────────────────────────────
+ear_threshold_default: 0.22   # Eye Aspect Ratio below this = eyes closed
+mar_threshold_default: 0.60   # Mouth Aspect Ratio above this = yawn
+ear_calib_alpha: 0.65         # personalized EAR threshold = alpha * baseline
+mar_calib_beta: 1.50          # personalized MAR threshold = beta  * baseline
+ear_baseline_min: 0.20        # calibration safety clamp (lower bound)
+ear_baseline_max: 0.35        # calibration safety clamp (upper bound)
+
+# ─── Alert frame counters ────────────────────────────────────────────────────
+ear_warn_frames: 8            # consecutive closed-eye frames → level-1 warning
+ear_alert_frames: 20          # consecutive closed-eye frames → level-2 alert
+
+# ─── Calibration ─────────────────────────────────────────────────────────────
+calib_duration_sec: 5.0
+calib_min_samples: 30
+
+# ─── Blink rate (BPM) ────────────────────────────────────────────────────────
+bpm_window_sec: 60.0
+bpm_low_thresh: 8.0
+bpm_high_thresh: 25.0
+bpm_blink_timeout_sec: 3.0    # no blink for this long → force BPM to 0
+
+# ─── Head pose ───────────────────────────────────────────────────────────────
+pose_yaw_ignore_deg: 30.0     # ignore EAR when head turned beyond this
+
+# ─── Smoothing / voting ──────────────────────────────────────────────────────
+ewma_alpha: 0.5               # higher = more responsive, lower = smoother
+vote_ratio: 0.60              # sleep-probability threshold for CNN alert
+
+# ─── CLAHE contrast enhancement ──────────────────────────────────────────────
+clahe_clip_limit: 2.0
+clahe_tile_grid: [8, 8]
+
+# ─── Pipeline ────────────────────────────────────────────────────────────────
+face_padding: 0.25
+cnn_skip: 3                   # run CNN every Nth frame
+no_face_reset_frames: 30
+camera_index: 0
+img_size: 224
+
+# ─── Classroom monitor (multi-student) ───────────────────────────────────────
+classroom_ear_history_len: 300
+classroom_mar_history_len: 300
+perclos_window: 90
+asi_w_perclos: 60.0
+asi_w_yawn: 25.0
+asi_w_head_drop: 15.0
+asi_momentum: 0.92
+asi_warn_threshold: 55.0
+asi_alert_threshold: 75.0
+asi_min_session_sec: 60.0
+session_expire_sec: 30.0
+head_drop_pitch_deg: 25.0
+mar_yawn_threshold: 0.55
+
+# ─── Performance / metrics ───────────────────────────────────────────────────
+enable_profiling: false
+enable_metrics: true
+fps_target: 30.0
+
+# ─── Logging ─────────────────────────────────────────────────────────────────
+log_level: INFO               # DEBUG | INFO | WARNING | ERROR | CRITICAL
+log_to_file: false
+log_file_path: sleepiness.log

@@ -1,0 +1,289 @@
+# Kubernetes Deployment for Sleepiness Detection System
+# Production-ready K8s manifests
+
+---
+# ─── Namespace ───────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sleepiness-detection
+  labels:
+    app: sleepiness-detection
+    environment: production
+
+---
+# ─── ConfigMap ───────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sleepiness-config
+  namespace: sleepiness-detection
+data:
+  LOG_LEVEL: "INFO"
+  ENABLE_METRICS: "true"
+  PRESET: "balanced"
+  FPS_TARGET: "30"
+
+---
+# ─── Secret ──────────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Secret
+metadata:
+  name: sleepiness-secrets
+  namespace: sleepiness-detection
+type: Opaque
+stringData:
+  api-key: "your-secret-api-key-here"
+  admin-password: "your-admin-password-here"
+
+---
+# ─── PersistentVolumeClaim ───────────────────────────────────────────────────
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sleepiness-models-pvc
+  namespace: sleepiness-detection
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: sleepiness-data-pvc
+  namespace: sleepiness-detection
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: standard
+
+---
+# ─── Deployment: API ─────────────────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sleepiness-api
+  namespace: sleepiness-detection
+  labels:
+    app: sleepiness-api
+    version: v21.0.0
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sleepiness-api
+  template:
+    metadata:
+      labels:
+        app: sleepiness-api
+        version: v21.0.0
+    spec:
+      containers:
+      - name: api
+        image: sleepiness-detection:v21.0.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8000
+          name: http
+          protocol: TCP
+        env:
+        - name: SLEEPINESS_LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: sleepiness-config
+              key: LOG_LEVEL
+        - name: SLEEPINESS_ENABLE_METRICS
+          valueFrom:
+            configMapKeyRef:
+              name: sleepiness-config
+              key: ENABLE_METRICS
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: sleepiness-secrets
+              key: api-key
+        resources:
+          requests:
+            cpu: 500m
+            memory: 1Gi
+          limits:
+            cpu: 2000m
+            memory: 2Gi
+        volumeMounts:
+        - name: models
+          mountPath: /app/models
+          readOnly: true
+        - name: data
+          mountPath: /data
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+      volumes:
+      - name: models
+        persistentVolumeClaim:
+          claimName: sleepiness-models-pvc
+      - name: data
+        persistentVolumeClaim:
+          claimName: sleepiness-data-pvc
+
+---
+# ─── Service: API ────────────────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: sleepiness-api-service
+  namespace: sleepiness-detection
+  labels:
+    app: sleepiness-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  selector:
+    app: sleepiness-api
+
+---
+# ─── HorizontalPodAutoscaler ─────────────────────────────────────────────────
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: sleepiness-api-hpa
+  namespace: sleepiness-detection
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: sleepiness-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+---
+# ─── Ingress ─────────────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: sleepiness-ingress
+  namespace: sleepiness-detection
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  tls:
+  - hosts:
+    - sleepiness-api.example.com
+    secretName: sleepiness-tls
+  rules:
+  - host: sleepiness-api.example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: sleepiness-api-service
+            port:
+              number: 8000
+
+---
+# ─── ServiceMonitor (Prometheus) ─────────────────────────────────────────────
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sleepiness-api-monitor
+  namespace: sleepiness-detection
+  labels:
+    app: sleepiness-api
+spec:
+  selector:
+    matchLabels:
+      app: sleepiness-api
+  endpoints:
+  - port: http
+    path: /metrics
+    interval: 30s
+
+---
+# ─── NetworkPolicy ───────────────────────────────────────────────────────────
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sleepiness-network-policy
+  namespace: sleepiness-detection
+spec:
+  podSelector:
+    matchLabels:
+      app: sleepiness-api
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+  egress:
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 53  # DNS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443  # HTTPS
+
+---
+# ─── PodDisruptionBudget ─────────────────────────────────────────────────────
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sleepiness-api-pdb
+  namespace: sleepiness-detection
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sleepiness-api

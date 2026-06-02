@@ -1,0 +1,62 @@
+# Requirements for Sleepiness Detection System v21
+
+# ─── Core Dependencies ───────────────────────────────────────────────────────
+# numpy 2.x is supported (tested on 2.4). Keep >=1.24 as the floor; do not cap
+# below 2.0 — torch>=2.3 / opencv>=4.10 wheels build against numpy 2.
+numpy>=1.24.0
+opencv-python>=4.5.0
+mediapipe>=0.10.0
+Pillow>=9.0.0
+
+# ─── Deep Learning ───────────────────────────────────────────────────────────
+torch>=2.0.0
+torchvision>=0.15.0
+onnx>=1.14.0
+onnxruntime>=1.15.0  # CPU version
+# onnxruntime-gpu>=1.15.0  # Uncomment for GPU support
+# Required by torch>=2.5 for torch.onnx.export (the new dynamo exporter).
+onnxscript>=0.1.0
+
+# ─── API & Web ───────────────────────────────────────────────────────────────
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+websockets>=11.0
+python-multipart>=0.0.6
+pydantic>=2.0.0
+
+# ─── Monitoring & Metrics ────────────────────────────────────────────────────
+psutil>=5.9.0
+prometheus-client>=0.17.0
+
+# ─── Configuration ───────────────────────────────────────────────────────────
+pyyaml>=6.0
+python-dotenv>=1.0.0
+
+# ─── Testing ─────────────────────────────────────────────────────────────────
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+pytest-timeout>=2.1.0
+
+# ─── Code Quality ────────────────────────────────────────────────────────────
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.4.0
+isort>=5.12.0
+
+# ─── Security ────────────────────────────────────────────────────────────────
+cryptography>=41.0.0
+
+# ─── Utilities ───────────────────────────────────────────────────────────────
+requests>=2.31.0
+tqdm>=4.65.0
+
+# ─── Optional: Database ──────────────────────────────────────────────────────
+# sqlalchemy>=2.0.0
+# psycopg2-binary>=2.9.0  # PostgreSQL
+# redis>=4.6.0
+
+# ─── Optional: Cloud ─────────────────────────────────────────────────────────
+# boto3>=1.28.0  # AWS
+# google-cloud-storage>=2.10.0  # GCP
+# azure-storage-blob>=12.17.0  # Azure

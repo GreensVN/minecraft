@@ -1,0 +1,31 @@
+# Development & tooling dependencies
+# Install with: pip install -r requirements-dev.txt
+
+-r requirements.txt
+
+# Testing
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-timeout>=2.1.0
+httpx>=0.24.0              # required by fastapi.testclient for API tests
+
+# Code quality
+black>=23.0.0
+flake8>=6.0.0
+mypy>=1.5.0
+isort>=5.12.0
+
+# Classroom monitoring (optional feature)
+ultralytics>=8.0.0         # YOLOv8
+lap>=0.4.0                 # SORT dependency
+filterpy>=1.4.5            # SORT Kalman filter
+
+# Web dashboard (optional feature)
+flask>=2.3.0
+flask-cors>=4.0.0
+websockets>=11.0
+
+# Data visualization (optional feature)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+plotly>=5.15.0
